@@ -87,17 +87,23 @@ jobs:
           path: /tmp
       - name: Load image
         run: docker load --input /tmp/image.tar
-      - name: Create host outputs dir
-        run: mkdir -p "${{ github.workspace }}/${{ env.OUTPUT_DIR }}"
-      - name: Run container and collect outputs
+
+      - name: Create host outputs dir with write perms
         run: |
-          docker run --name "${{ env.CONTAINER_NAME }}" --rm \
+          mkdir -p "${{ github.workspace }}/${{ env.OUTPUT_DIR }}"
+          chmod -R 777 "${{ github.workspace }}/${{ env.OUTPUT_DIR }}"
+
+      - name: Run container and collect outputs (run as root to avoid mount perms)
+        run: |
+          docker run --user 0:0 --name "${{ env.CONTAINER_NAME }}" --rm \
             -v "${{ github.workspace }}/${{ env.OUTPUT_DIR }}:/app/outputs" \
             ${{ env.IMAGE_TAG }}
+
       - name: List collected outputs
         run: |
           echo "Files in ${{ env.OUTPUT_DIR }}:"
           ls -la "${{ env.OUTPUT_DIR }}" || true
+
       - name: Upload analysis outputs
         uses: actions/upload-artifact@v4
         with:
