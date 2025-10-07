@@ -9,8 +9,8 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  IMAGE_TAG: app-local:latest
   PROJECT_DIR: Group2Assignment1
+  IMAGE_TAG: app-local:latest
   OUTPUT_DIR: Group2Assignment1/outputs
   CONTAINER_NAME: diet-app
 
@@ -67,20 +67,36 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image (project subfolder)
+      - name: Build image and export tar
         uses: docker/build-push-action@v6
         with:
-          context: ./Group2Assignment1
-          file: ./Group2Assignment1/Dockerfile
+          context: ./${{ env.PROJECT_DIR }}
+          file: ./${{ env.PROJECT_DIR }}/Dockerfile
           push: false
           tags: ${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Upload image tar
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp/image.tar
 
   simulate_deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download image tar
+        uses: actions/download-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp
+
+      - name: Load image
+        run: docker load --input /tmp/image.tar
+
       - name: Create host outputs dir
         run: mkdir -p "${{ github.workspace }}/${{ env.OUTPUT_DIR }}"
 
