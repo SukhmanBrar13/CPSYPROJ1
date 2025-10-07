@@ -1,51 +1,67 @@
-from azure.storage.blob import BlobServiceClient
-import pandas as pd
+from azure.storage.blob import BlobServiceClient # type: ignore
+import importlib
 import io
 import json
-import os
+from pathlib import Path
 
-# Connection string to local Azurite
-connect_str = (
+CONNECT_STR = (
     "DefaultEndpointsProtocol=http;"
     "AccountName=devstoreaccount1;"
     "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;"
     "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
 )
+CONTAINER = "diet-data"
+BLOB_NAME = "All_Diets.csv"
+OUT_DIR = Path("simulated_nosql")
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+OUT_JSON = OUT_DIR / "results.json"
 
+_pd = None
+_blob_service = None
 
-blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-container_name = "diet-data"
-blob_name = "All_Diets.csv"
-local_csv_path = r"C:\proj1\Group2Assignment1\data\All_Diets.csv"
+def get_pd():
+    global _pd
+    if _pd is None:
+        _pd = importlib.import_module("pandas")
+    return _pd
 
+def get_blob_service():
+    global _blob_service
+    if _blob_service is None:
+        _blob_service = BlobServiceClient.from_connection_string(CONNECT_STR)
+    return _blob_service
 
-# 1 Create container if it doesn't exist
-try:
-    blob_service_client.create_container(container_name)
-    print(f"Container '{container_name}' created.")
-except Exception:
-    print(f"Container '{container_name}' already exists or creation skipped.")
+def handler(event=None, context=None):
+    pd = get_pd()
+    svc = get_blob_service()
 
-# 2 Upload CSV to container
-blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
-with open(local_csv_path, "rb") as data:
-    blob_client.upload_blob(data, overwrite=True)
-print(f"CSV '{blob_name}' uploaded successfully.")
+    blob = svc.get_blob_client(container=CONTAINER, blob=BLOB_NAME)
+    data = blob.download_blob().readall()
+    df = pd.read_csv(io.BytesIO(data))
 
-# 3 Download CSV and process it
-stream = blob_client.download_blob().readall()
-df = pd.read_csv(io.BytesIO(stream))
+    cols = {c.lower().replace("(", "").replace(")", ""): c for c in df.columns}
+    def pick(*names):
+        for n in names:
+            key = n.lower()
+            if key in cols:
+                return cols[key]
+        return None
 
-# 4 Calculate averages
-avg_macros = df.groupby("Diet_type")[["Protein(g)", "Carbs(g)", "Fat(g)"]].mean()
+    diet_col = pick("diet_type")
+    prot_col = pick("protein_g", "proteing", "protein g")
+    carb_col = pick("carbs_g", "carbsg", "carbs g")
+    fat_col  = pick("fat_g", "fatg", "fat g")
 
-# 5 Save results to simulated NoSQL JSON
-os.makedirs("simulated_nosql", exist_ok=True)
-results_path = "simulated_nosql/results.json"
-result = avg_macros.reset_index().to_dict(orient="records")
-with open(results_path, "w") as f:
-    json.dump(result, f, indent=4)
+    if any(x is None for x in [diet_col, prot_col, carb_col, fat_col]):
+        raise RuntimeError(f"Missing expected columns. Found: {list(df.columns)}")
 
-print(f" Data processed and stored successfully at '{results_path}'")
-print("Preview of results (first few rows):")
-print(result[:5])
+    avg = df.groupby(diet_col)[[prot_col, carb_col, fat_col]].mean().reset_index()
+    result = avg.to_dict(orient="records")
+
+    with open(OUT_JSON, "w") as f:
+        json.dump(result, f, indent=2)
+
+    return {"ok": True, "rows": len(result), "out": str(OUT_JSON)}
+
+if __name__ == "__main__":
+    print(handler())
