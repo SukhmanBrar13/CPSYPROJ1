@@ -10,8 +10,9 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   IMAGE_TAG: app-local:latest
+  PROJECT_DIR: Group2Assignment1
+  OUTPUT_DIR: Group2Assignment1/outputs
   CONTAINER_NAME: diet-app
-  OUTPUT_DIR: outputs
 
 jobs:
   test:
@@ -19,10 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -30,18 +33,23 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      - name: Install dependencies
+
+      - name: Install dependencies (project folder)
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f "${{ env.PROJECT_DIR }}/requirements.txt" ]; then pip install -r "${{ env.PROJECT_DIR }}/requirements.txt"; fi
           pip install pytest || true
           pip install flake8 || true
+
       - name: Lint (non-blocking)
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           if command -v flake8 >/dev/null 2>&1; then
             flake8 . || true
           fi
-      - name: Run tests (or skip if none)
+
+      - name: Run tests (or skip)
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           if compgen -G "tests/test_*.py" > /dev/null; then
             pytest -q
@@ -55,12 +63,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build image (local tag)
+
+      - name: Build image (project subfolder)
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./Group2Assignment1
+          file: ./Group2Assignment1/Dockerfile
           push: false
           tags: ${{ env.IMAGE_TAG }}
           cache-from: type=gha
@@ -70,17 +81,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Ensure outputs directory exists
+      - name: Create host outputs dir
         run: mkdir -p "${{ github.workspace }}/${{ env.OUTPUT_DIR }}"
+
       - name: Run container and collect outputs
         run: |
           docker run --name "${{ env.CONTAINER_NAME }}" --rm \
             -v "${{ github.workspace }}/${{ env.OUTPUT_DIR }}:/app/outputs" \
             ${{ env.IMAGE_TAG }}
+
       - name: List collected outputs
         run: |
           echo "Files in ${{ env.OUTPUT_DIR }}:"
           ls -la "${{ env.OUTPUT_DIR }}" || true
+
       - name: Upload analysis outputs
         uses: actions/upload-artifact@v4
         with:
