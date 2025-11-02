@@ -1,0 +1,31 @@
+# Node
+**/node_modules/
+
+# Python
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+
+# Builds
+**/dist/
+**/build/
+.vite/
+.cache/
+coverage/
+
+# Env / logs
+.env
+.env.*
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*.swo
+*.swn
+*.bak
