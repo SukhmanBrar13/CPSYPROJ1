@@ -6,6 +6,7 @@ import ClusterSummary from "./components/ClusterSummary";
 import AvgHeatmap from "./components/AvgHeatmap";
 import MacroPie from "./components/MacroPie";
 import { fetchAvg, fetchTopProtein, fetchClusters, fetchRecipesByDiet } from "./lib/api";
+import SecurityPanel from "./components/SecurityPanel";
 
 // ---------- Types ----------
 type AvgItem = {
@@ -301,6 +302,14 @@ export default function App() {
           </section>
         )}
       </main>
+
+      {/* Security & Cloud Section */}
+      <SecurityPanel
+        onCleanUpClick={() => {
+          console.log("Clean up clicked");
+        }}
+      />
+
 
       {/* Footer */}
       <footer className="bg-blue-600 text-white">

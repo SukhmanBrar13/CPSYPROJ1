@@ -3,6 +3,7 @@ import { fetchAvg, fetchTopProtein, fetchClusters } from "../lib/api";
 import AvgChart from "../components/AvgChart";
 import TopProteinTable from "../components/TopProteinTable";
 import ClusterChart from "../components/ClusterChart";
+import SecurityPanel from "../components/SecurityPanel";
 
 export default function Dashboard() {
   const [diet, setDiet] = useState("all");
@@ -53,6 +54,14 @@ export default function Dashboard() {
         <h2 className="font-semibold mb-2">Nutrient Clusters (K-Means)</h2>
         <ClusterChart points={clusters} />
       </section>
+
+      {/* Security & Cloud Section */}
+      <SecurityPanel
+        onCleanUpClick={() => {
+          console.log("Clean up clicked");
+        }}
+      />
+
     </div>
   );
 }
