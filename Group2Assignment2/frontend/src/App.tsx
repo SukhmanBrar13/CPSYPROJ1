@@ -290,8 +290,13 @@ export default function App() {
         )}
 
         {detailView === "clusters" && (
-          <section className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-semibold mb-2">Cluster Summary</h3>
+          <section className="bg-white rounded-lg shadow p-4 space-y-4">
+            <h3 className="font-semibold">Cluster Visualization (Carbs vs Protein)</h3>
+            <div className="h-64">
+              <ClusterChart points={clusters} />
+            </div>
+
+            <h4 className="font-semibold mt-4">Cluster Summary</h4>
             <ClusterSummary points={clusters} />
           </section>
         )}
