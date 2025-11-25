@@ -1,3 +1,4 @@
+# Loads and cashes the dataset from a CSV file.
 import pandas as pd
 from pathlib import Path
 from .utils import normalize_columns

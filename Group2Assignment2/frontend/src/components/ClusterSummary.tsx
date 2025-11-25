@@ -1,3 +1,4 @@
+// Scatter Plot for Clustering Results
 type Pt = { x: number; y: number; label: number };
 
 export default function ClusterSummary({ points }: { points: Pt[] }) {

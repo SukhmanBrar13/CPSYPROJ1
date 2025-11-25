@@ -1,3 +1,4 @@
+// Bar Chart for Average Nutrients
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
 export default function AvgChart({ data }: { data: any[] }) {

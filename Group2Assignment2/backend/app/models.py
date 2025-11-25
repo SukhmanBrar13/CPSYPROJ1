@@ -1,3 +1,4 @@
+# Defines the Pydantic data models for API responses and validation.
 from pydantic import BaseModel
 from typing import List, Optional
 

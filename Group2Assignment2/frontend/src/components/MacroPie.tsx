@@ -1,3 +1,4 @@
+// Pie Chart for Macronutrient Distribution
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 type AvgItem = { diet_type: string; avg_protein_g: number; avg_carbs_g: number; avg_fat_g: number; };

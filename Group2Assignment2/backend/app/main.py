@@ -1,3 +1,4 @@
+# Defines all API routes for insights, recipes, and clustering.
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path

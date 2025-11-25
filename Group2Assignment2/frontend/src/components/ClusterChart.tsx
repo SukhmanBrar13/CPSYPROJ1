@@ -1,3 +1,4 @@
+// Scatter Plot for Clustering Results
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, Tooltip } from "recharts";
 
 type Pt = { x: number; y: number; label: number };

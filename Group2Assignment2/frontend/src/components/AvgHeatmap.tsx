@@ -1,3 +1,4 @@
+// Heatmap for Nutrient Intensity
 import { Fragment } from "react";
 
 type AvgItem = {

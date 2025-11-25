@@ -1,3 +1,4 @@
+// Table for Top Protein Recipes
 export default function TopProteinTable({ recipes }: { recipes: any[] }) {
   return (
     <table className="w-full text-sm border-collapse border">
