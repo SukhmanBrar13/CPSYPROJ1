@@ -1,4 +1,5 @@
 # Defines all API routes for insights, recipes, and clustering.
+from http.client import HTTPException
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -11,6 +12,7 @@ from .models import (
     Recipe, TopProteinResponse,
     ClusterResponse, ClusterPoint
 )
+from azure_cleanup import cleanup_resource_group
 
 # Path to the CSV dataset (shared across all API endpoints)
 CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "All_Diets.csv"
@@ -139,3 +141,17 @@ async def clusters(k: int = Query(4, ge=2, le=10), diet: str = Query("all")):
     ]
 
     return {"points": points}
+
+# -------------------------------------------------------------
+# Cloud resource cleanup endpoint
+# -------------------------------------------------------------
+@app.post("/cloud/cleanup")
+async def cloud_cleanup():
+    """
+    Cleans up cloud resources by deleting the specified resource group.
+    """
+    try:
+        result = cleanup_resource_group()
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

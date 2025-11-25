@@ -29,3 +29,16 @@ export async function fetchRecipesByDiet(diet: string = "all") {
   if (!r.ok) throw new Error("Failed to fetch recipes");
   return r.json();
 }
+
+export async function triggerCloudCleanup() {
+  const r = await fetch(`${BASE}/cloud/cleanup`, {
+    method: "POST",
+  });
+
+  if (!r.ok) {
+    const msg = await r.text();
+    throw new Error(msg || "Failed to clean up cloud resources");
+  }
+
+  return r.json();
+}

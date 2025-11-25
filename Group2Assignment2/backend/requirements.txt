@@ -3,3 +3,5 @@ uvicorn[standard]
 pandas
 scikit-learn
 pydantic
+azure-identity
+azure-mgmt-resource

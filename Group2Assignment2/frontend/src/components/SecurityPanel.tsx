@@ -1,10 +1,42 @@
-import React from "react";
+import React, { useState } from "react";
+import { triggerCloudCleanup } from "../lib/api";
 
 type Props = {
   onCleanUpClick?: () => void;
 };
 
 export default function SecurityPanel({ onCleanUpClick }: Props) {
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
+  const [cleanupError, setCleanupError] = useState<string | null>(null);
+
+  async function handleCleanUpClick() {
+    try {
+      setCleanupLoading(true);
+      setCleanupMessage(null);
+      setCleanupError(null);
+
+      const res = await triggerCloudCleanup();
+
+      const rgName =
+        res?.result?.deleted_resource_group ??
+        res?.result?.resource_group ??
+        "resource group";
+
+      setCleanupMessage(`Cleanup completed for: ${rgName}`);
+
+      if (onCleanUpClick) {
+        onCleanUpClick();
+      }
+    } catch (e: any) {
+      setCleanupError(
+        e?.message || "Failed to clean up cloud resources. Please try again."
+      );
+    } finally {
+      setCleanupLoading(false);
+    }
+  }
+
   return (
     <div className="mt-8 space-y-6">
       {/* Security & Compliance */}
@@ -67,11 +99,19 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
         </p>
         <button
           type="button"
-          onClick={onCleanUpClick}
-          className="px-4 py-2 rounded bg-red-600 text-white text-sm"
+          onClick={handleCleanUpClick}
+          disabled={cleanupLoading}
+          className="px-4 py-2 rounded bg-red-600 text-white text-sm disabled:opacity-60"
         >
-          Clean Up Resources
+          {cleanupLoading ? "Cleaning..." : "Clean Up Resources"}
         </button>
+
+        {cleanupMessage && (
+          <p className="mt-2 text-sm text-green-700">{cleanupMessage}</p>
+        )}
+        {cleanupError && (
+          <p className="mt-2 text-sm text-red-600">{cleanupError}</p>
+        )}
       </section>
     </div>
   );
