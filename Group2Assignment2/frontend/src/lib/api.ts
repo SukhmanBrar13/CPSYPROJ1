@@ -21,3 +21,11 @@ export async function fetchClusters(k: number = 4, diet: string = "all") {
   if (!r.ok) throw new Error("Failed to fetch clusters");
   return r.json();
 }
+
+export async function fetchRecipesByDiet(diet: string = "all") {
+  const r = await fetch(
+    `${BASE}/recipes/by_diet?diet=${encodeURIComponent(diet)}`
+  );
+  if (!r.ok) throw new Error("Failed to fetch recipes");
+  return r.json();
+}

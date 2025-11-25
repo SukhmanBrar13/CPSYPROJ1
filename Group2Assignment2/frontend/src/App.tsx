@@ -5,7 +5,7 @@ import ClusterChart from "./components/ClusterChart";
 import ClusterSummary from "./components/ClusterSummary";
 import AvgHeatmap from "./components/AvgHeatmap";
 import MacroPie from "./components/MacroPie";
-import { fetchAvg, fetchTopProtein, fetchClusters } from "./lib/api";
+import { fetchAvg, fetchTopProtein, fetchClusters, fetchRecipesByDiet } from "./lib/api";
 
 // ---------- Types ----------
 type AvgItem = {
@@ -72,7 +72,6 @@ export default function App() {
 
   // ----- Constants -----
   const K_FIXED = 4;    // Number of clusters for K-Means (fixed for the UI)
-  const TOP_FIXED = 5;  // Top-N recipes (fixed)
 
   // ----- Apply “searchText” to diet when user presses Enter -----
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -124,22 +123,24 @@ export default function App() {
     }
 
   // ----- Button: show recipes detail table -----
-   async function onGetRecipes() {
-    try {
+    async function onGetRecipes() {
+      try {
         setLoading(true);
         setErr(null);
         const resolved = resolveDiet();
         setDiet(resolved);
-        const r = await fetchTopProtein(resolved, TOP_FIXED);
+
+        const r = await fetchRecipesByDiet(resolved);
         setRecipes(r.recipes ?? []);
         setDetailView("recipes");
         setUpdatedAt(new Date().toLocaleTimeString());
-    } catch (e: any) {
+      } catch (e: any) {
         setErr(e?.message ?? "Failed to load recipes");
-    } finally {
+      } finally {
         setLoading(false);
+      }
     }
-    }
+
 
   // ----- Button: show clusters detail summary (table) -----
     async function onGetClusters() {
@@ -294,38 +295,6 @@ export default function App() {
             <ClusterSummary points={clusters} />
           </section>
         )}
-
-        {/* Pagination: sample two-page control, not wired to any data for now */}
-        <section>
-          <h3 className="text-xl font-semibold mb-3">Pagination</h3>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={prevPage}
-              disabled={page === 1}
-              className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            {[1, 2].map((n) => (
-              <button
-                key={n}
-                onClick={() => goPage(n)}
-                className={`px-3 py-1 rounded ${
-                  page === n ? "bg-blue-600 text-white" : "bg-gray-200"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-            <button
-              onClick={nextPage}
-              disabled={page === totalPages}
-              className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}

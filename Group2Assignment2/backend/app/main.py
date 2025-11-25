@@ -78,44 +78,28 @@ async def avg_insights(diet: str = Query("all")):
 # -------------------------------------------------------------
 # Top N protein-rich recipes (by diet)
 # -------------------------------------------------------------
-@app.get("/recipes/top_protein", response_model=TopProteinResponse)
-async def top_protein(diet: str = Query("all"), top: int = Query(5, ge=1, le=50)):
-    """
-    Returns the top N recipes with the highest protein content.
-    Optionally filters by a specific diet type.
-
-    Args:
-        diet (str): Diet type to filter by (default = "all")
-        top (int): Number of top recipes to return (default = 5)
-
-    Returns:
-        TopProteinResponse: List of top recipes with details
-    """
+@app.get("/recipes/by_diet")
+def recipes_by_diet(diet: str = "all"):
     df = load_data(CSV_PATH)
-    dfq = filter_by_diet(df, diet)
 
-    # If 'all' diets are selected, get overall top recipes
-    if diet.lower() in ("all", "all diet types"):
-        top_df = dfq.sort_values("protein_g", ascending=False).head(top)
-        diet_label = "all"
-    else:
-        top_df = dfq.sort_values("protein_g", ascending=False).head(top)
-        diet_label = diet
+    if diet != "all":
+        df = df[df["diet_type"].str.lower() == diet.lower()]
 
-    # Convert to Pydantic model list
+    df = df.sort_values("protein_g", ascending=False)
+
     recipes = [
-        Recipe(
-            diet_type=str(r["diet_type"]),
-            recipe_name=str(r["recipe_name"]),
-            cuisine_type=str(r.get("cuisine_type", "")),
-            protein_g=float(r["protein_g"]),
-            carbs_g=float(r["carbs_g"]),
-            fat_g=float(r["fat_g"]),
-        )
-        for _, r in top_df.iterrows()
+        {
+            "diet_type": row["diet_type"],
+            "recipe_name": row["recipe_name"],
+            "cuisine_type": row["cuisine_type"],
+            "protein_g": float(row["protein_g"]),
+            "carbs_g": float(row["carbs_g"]),
+            "fat_g": float(row["fat_g"]),
+        }
+        for _, row in df.iterrows()
     ]
 
-    return {"diet_type": diet_label, "recipes": recipes}
+    return {"recipes": recipes}
 
 
 # -------------------------------------------------------------
