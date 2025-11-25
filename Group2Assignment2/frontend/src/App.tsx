@@ -87,11 +87,16 @@ export default function App() {
     (async () => {
       try {
         const d = await fetchAvg("all");
-        const opts = Array.from(new Set<string>(d.items.map((i: AvgItem) => i.diet_type)));
+
+        const items: AvgItem[] = d.items ?? [];
+        const opts = Array.from(
+          new Set<string>(items.map((i) => i.diet_type))
+        );
+
         setDietOptions(["all", ...opts]);
-      } catch {
-        // ignore; dropdown will still work with ["all"]
-      }
+      } catch (err) {
+        setDietOptions(["all"]);
+        }
     })();
   }, []);
 
