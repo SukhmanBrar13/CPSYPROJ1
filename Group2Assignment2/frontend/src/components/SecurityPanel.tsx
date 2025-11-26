@@ -7,6 +7,33 @@ type Props = {
   onCleanUpClick?: () => void;
 };
 
+const FRONTEND_REDIRECT_URI = "http://localhost:5173";
+
+function buildGithubAuthUrl() {
+  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID as string;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: FRONTEND_REDIRECT_URI,
+    scope: "user:email",
+    state: "github",
+  });
+  return `https://github.com/login/oauth/authorize?${params.toString()}`;
+}
+
+function buildGoogleAuthUrl() {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: FRONTEND_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    state: "google",
+    access_type: "online",
+    include_granted_scopes: "true",
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
 export default function SecurityPanel({ onCleanUpClick }: Props) {
   // ----- Security & Compliance -----
   const [security, setSecurity] = useState<SecurityStatus | null>(null);
@@ -17,6 +44,22 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
   const [cleanupError, setCleanupError] = useState<string | null>(null);
+
+  // ----- OAuth & 2FA Integration -----
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  function startGoogleLogin() {
+    setAuthMessage(null);
+    setAuthError(null);
+    window.location.href = buildGoogleAuthUrl();
+  }
+
+  function startGithubLogin() {
+    setAuthMessage(null);
+    setAuthError(null);
+    window.location.href = buildGithubAuthUrl();
+  }
 
   // Fetch security status on component mount
   useEffect(() => {
@@ -61,7 +104,61 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
     } finally {
       setCleanupLoading(false);
     }
-  }
+  }  
+
+    useEffect(() => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state"); // "google" or "github"
+
+    if (!code || !state) return;
+    const safeCode = code;
+
+    async function handleOAuthCallback() {
+      try {
+        setAuthMessage(null);
+        setAuthError(null);
+
+        if (state === "github") {
+          const res = await fetch(
+            `http://127.0.0.1:8000/auth/github/callback?code=${encodeURIComponent(
+              safeCode
+            )}`
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "GitHub login failed");
+          }
+          setAuthMessage(
+            `GitHub login successful: ${data.name || data.login}`
+          );
+        } else if (state === "google") {
+          const res = await fetch(
+            `http://127.0.0.1:8000/auth/google/callback?code=${encodeURIComponent(
+              safeCode
+            )}`
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Google login failed");
+          }
+          setAuthMessage(
+            `Google login successful: ${data.name || data.email}`
+          );
+        }
+
+        // remove code and state from URL
+        url.searchParams.delete("code");
+        url.searchParams.delete("state");
+        window.history.replaceState({}, "", url.toString());
+      } catch (e: any) {
+        setAuthError(e?.message || "OAuth callback failed");
+      }
+    }
+
+    void handleOAuthCallback();
+  }, []);
+
 
   return (
     <div className="mt-8 space-y-6">
@@ -113,13 +210,28 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
         <div className="space-y-3">
           <div className="text-sm font-medium mb-1">Secure Login</div>
           <div className="flex flex-wrap gap-2">
-            <button className="px-4 py-2 rounded bg-blue-600 text-white text-sm">
+            <button
+              type="button"
+              onClick={startGoogleLogin}
+              className="px-4 py-2 rounded bg-blue-600 text-white text-sm"
+            >
               Login with Google
             </button>
-            <button className="px-4 py-2 rounded bg-blue-600 text-white text-sm">
+            <button
+              type="button"
+              onClick={startGithubLogin}
+              className="px-4 py-2 rounded bg-blue-600 text-white text-sm"
+            >
               Login with GitHub
             </button>
           </div>
+
+          {authMessage && (
+            <p className="text-sm text-green-700 mt-1">{authMessage}</p>
+          )}
+          {authError && (
+            <p className="text-sm text-red-600 mt-1">{authError}</p>
+          )}
 
           <div className="mt-4 space-y-1 text-sm">
             <label className="block font-medium" htmlFor="twofa">

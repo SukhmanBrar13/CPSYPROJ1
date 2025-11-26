@@ -10,11 +10,23 @@ npm run dev
 ----
 UPDATED VERSION FOR ASSIGNMENT 3
 
+# backend
 cd Group2Assignment2/backend
+
+venv\Scripts\activate
+
 az login
-$env:AZURE_SUBSCRIPTION_ID = "98322b17-807f-40d8-b005-597ea043aa9b"
-$env:AZURE_RESOURCE_GROUP  = "group2assn3"
+$env:AZURE_SUBSCRIPTION_ID = 
+$env:AZURE_RESOURCE_GROUP  = 
+
+$env:GITHUB_CLIENT_ID=
+$env:GITHUB_CLIENT_SECRET=
+
+$env:GOOGLE_CLIENT_ID=
+$env:GOOGLE_CLIENT_SECRET=
+
 uvicorn app.main:app --reload
 
+# frontend
 cd Group2Assignment2/frontend
 npm run dev
