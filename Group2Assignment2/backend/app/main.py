@@ -12,7 +12,7 @@ from .models import (
     Recipe, TopProteinResponse,
     ClusterResponse, ClusterPoint
 )
-from azure_cleanup import cleanup_resource_group
+from .azure_cleanup import cleanup_resource_group
 
 # Path to the CSV dataset (shared across all API endpoints)
 CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "All_Diets.csv"
