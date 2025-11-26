@@ -207,6 +207,7 @@ def github_callback(code: str):
             "client_id": GITHUB_CLIENT_ID,
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
+            "redirect_uri": "http://localhost:5173",
         },
     )
 
@@ -216,7 +217,7 @@ def github_callback(code: str):
     token_data = token_res.json()
     access_token = token_data.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=500, detail="No access token from GitHub")
+        raise HTTPException(status_code=500, detail=f"GitHub token error: {token_data}")
 
     # 2) Fetch user information using access_token
     user_res = requests.get(

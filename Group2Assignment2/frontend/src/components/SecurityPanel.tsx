@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { fetchSecurityStatus } from "../lib/api";
 import type { SecurityStatus } from "../lib/api";
 import { triggerCloudCleanup } from "../lib/api";
@@ -48,6 +48,7 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
   // ----- OAuth & 2FA Integration -----
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const hasHandledOAuthRef = useRef(false);
 
   function startGoogleLogin() {
     setAuthMessage(null);
@@ -107,11 +108,16 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
   }  
 
     useEffect(() => {
+    if (hasHandledOAuthRef.current) return;
+
     const url = new URL(window.location.href);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state"); // "google" or "github"
 
     if (!code || !state) return;
+
+    hasHandledOAuthRef.current = true;
+    
     const safeCode = code;
 
     async function handleOAuthCallback() {
