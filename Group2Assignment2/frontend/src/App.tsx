@@ -5,7 +5,7 @@ import ClusterChart from "./components/ClusterChart";
 import ClusterSummary from "./components/ClusterSummary";
 import AvgHeatmap from "./components/AvgHeatmap";
 import MacroPie from "./components/MacroPie";
-import { fetchAvg, fetchTopProtein, fetchClusters, fetchRecipesByDiet } from "./lib/api";
+import { fetchAvg, fetchClusters, fetchRecipesByDiet } from "./lib/api";
 import SecurityPanel from "./components/SecurityPanel";
 
 // ---------- Types ----------
@@ -52,19 +52,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
-
-  // ----- Simple pagination sample (2 pages) -----
-  const [page, setPage] = useState<number>(1);
-  const totalPages = 2;
-  function prevPage() {
-    setPage((p) => Math.max(1, p - 1));
-  }
-  function nextPage() {
-    setPage((p) => Math.min(totalPages, p + 1));
-  }
-  function goPage(n: number) {
-    setPage(() => Math.min(Math.max(1, n), totalPages));
-  }
 
   function resolveDiet(): string {
     const s = (searchText || "").trim().toLowerCase();

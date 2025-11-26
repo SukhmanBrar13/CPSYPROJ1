@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { fetchSecurityStatus } from "../lib/api";
-import type { SecurityStatus } from "../lib/api";
+import type { SecurityStatus, TwoFAResponse, TwoFASendResponse } from "../lib/api";
 import { triggerCloudCleanup } from "../lib/api";
+import { sendTwoFactorCode } from "../lib/api";
+import { verifyTwoFactor } from "../lib/api";
 
 type Props = {
   onCleanUpClick?: () => void;
@@ -49,6 +51,12 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const hasHandledOAuthRef = useRef(false);
+  const [twoFaSendLoading, setTwoFaSendLoading] = useState(false);
+  const [twoFaSendMessage, setTwoFaSendMessage] = useState<string | null>(null);
+  const [twoFaCode, setTwoFaCode] = useState("");
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaMessage, setTwoFaMessage] = useState<string | null>(null);
+  const [twoFaError, setTwoFaError] = useState<string | null>(null);
 
   function startGoogleLogin() {
     setAuthMessage(null);
@@ -117,7 +125,7 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
     if (!code || !state) return;
 
     hasHandledOAuthRef.current = true;
-    
+
     const safeCode = code;
 
     async function handleOAuthCallback() {
@@ -164,6 +172,43 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
 
     void handleOAuthCallback();
   }, []);
+
+    async function handleVerifyTwoFa() {
+    try {
+      setTwoFaLoading(true);
+      setTwoFaMessage(null);
+      setTwoFaError(null);
+
+      const res: TwoFAResponse = await verifyTwoFactor(twoFaCode);
+
+      if (res.success) {
+        setTwoFaMessage(res.message);
+      } else {
+        setTwoFaError(res.message || "Invalid 2FA code.");
+      }
+    } catch (e: any) {
+      setTwoFaError(e?.message || "Failed to verify 2FA code.");
+    } finally {
+      setTwoFaLoading(false);
+    }
+  }
+
+
+    async function handleSendTwoFaCode() {
+    try {
+      setTwoFaSendLoading(true);
+      setTwoFaSendMessage(null);
+      setTwoFaMessage(null);
+      setTwoFaError(null);
+
+      const res: TwoFASendResponse = await sendTwoFactorCode();
+      setTwoFaSendMessage(res.message);
+    } catch (e: any) {
+      setTwoFaError(e?.message || "Failed to send 2FA code.");
+    } finally {
+      setTwoFaSendLoading(false);
+    }
+  }
 
 
   return (
@@ -239,18 +284,57 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
             <p className="text-sm text-red-600 mt-1">{authError}</p>
           )}
 
-          <div className="mt-4 space-y-1 text-sm">
+                    <div className="mt-4 space-y-1 text-sm">
             <label className="block font-medium" htmlFor="twofa">
               Enter 2FA Code
             </label>
-            <input
-              id="twofa"
-              type="text"
-              placeholder="Enter your 2FA code"
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
+
+            <div className="flex gap-2">
+              <input
+                id="twofa"
+                type="text"
+                placeholder="Enter the 6-digit code"
+                value={twoFaCode}
+                onChange={(e) => setTwoFaCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && twoFaCode && !twoFaLoading) {
+                    void handleVerifyTwoFa();
+                  }
+                }}
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+
+              <button
+                type="button"
+                onClick={handleSendTwoFaCode}
+                disabled={twoFaSendLoading}
+                className="px-3 py-2 rounded bg-gray-200 text-xs font-medium disabled:opacity-60"
+              >
+                {twoFaSendLoading ? "Sending..." : "Send code"}
+              </button>
+            </div>
+
+              <button
+              type="button"
+              onClick={handleVerifyTwoFa}
+              disabled={!twoFaCode || twoFaLoading}
+              className="mt-2 px-4 py-2 rounded bg-green-600 text-white text-sm disabled:opacity-60"
+            >
+              {twoFaLoading ? "Verifying..." : "Verify Code"}
+            </button>
+
+            {twoFaSendMessage && (
+              <p className="text-xs text-gray-600 mt-1">{twoFaSendMessage}</p>
+            )}
+            {twoFaMessage && (
+              <p className="text-xs text-green-700 mt-1">{twoFaMessage}</p>
+            )}
+            {twoFaError && (
+              <p className="text-xs text-red-600 mt-1">{twoFaError}</p>
+            )}
           </div>
         </div>
+
       </section>
 
       {/* Cloud Resource Cleanup */}

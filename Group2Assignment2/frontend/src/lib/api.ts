@@ -61,3 +61,41 @@ export async function fetchSecurityStatus(): Promise<SecurityStatus> {
 
   return r.json();
 }
+
+export type TwoFASendResponse = {
+  success: boolean;
+  message: string;
+};
+
+export async function sendTwoFactorCode(): Promise<TwoFASendResponse> {
+  const r = await fetch(`${BASE}/auth/2fa/send`, {
+    method: "POST",
+  });
+
+  if (!r.ok) {
+    const msg = await r.text();
+    throw new Error(msg || "Failed to send 2FA code");
+  }
+
+  return r.json();
+}
+
+export type TwoFAResponse = {
+  success: boolean;
+  message: string;
+};
+
+export async function verifyTwoFactor(code: string): Promise<TwoFAResponse> {
+  const r = await fetch(`${BASE}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+
+  if (!r.ok) {
+    const msg = await r.text();
+    throw new Error(msg || "Failed to verify 2FA code");
+  }
+
+  return r.json();
+}

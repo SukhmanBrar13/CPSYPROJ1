@@ -18,6 +18,10 @@ from typing import Literal
 import os
 import requests
 from fastapi import HTTPException
+import time
+import secrets
+import smtplib
+from email.message import EmailMessage
 
 # Path to the CSV dataset (shared across all API endpoints)
 CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "All_Diets.csv"
@@ -288,3 +292,94 @@ def google_callback(code: str):
         "name": user.get("name"),
         "picture": user.get("picture"),
     }
+
+# -------------------------------------------------------------
+# Two-Factor Authentication (2FA) via Email
+# -------------------------------------------------------------
+
+class TwoFASendResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class TwoFARequest(BaseModel):
+    code: str
+
+
+class TwoFAResponse(BaseModel):
+    success: bool
+    message: str
+
+
+TWOFA_STORE = {
+    "code": None,
+    "expires_at": 0.0,
+}
+
+TWOFA_SMTP_HOST = os.environ.get("TWOFA_SMTP_HOST", "smtp.gmail.com")
+TWOFA_SMTP_PORT = int(os.environ.get("TWOFA_SMTP_PORT", "587"))
+TWOFA_SMTP_USER = os.environ.get("TWOFA_SMTP_USER")
+TWOFA_SMTP_PASS = os.environ.get("TWOFA_SMTP_PASS")
+TWOFA_EMAIL_TO = os.environ.get("TWOFA_EMAIL_TO")
+
+
+def send_twofa_email(code: str):
+    if not (TWOFA_SMTP_USER and TWOFA_SMTP_PASS and TWOFA_EMAIL_TO):
+        raise RuntimeError("2FA email settings are not configured")
+
+    msg = EmailMessage()
+    msg["Subject"] = "Your 2FA Code"
+    msg["From"] = TWOFA_SMTP_USER
+    msg["To"] = TWOFA_EMAIL_TO
+    msg.set_content(f"Your 2FA code is: {code}\n\nThis code will expire in 5 minutes.")
+
+    with smtplib.SMTP(TWOFA_SMTP_HOST, TWOFA_SMTP_PORT) as server:
+        server.starttls()
+        server.login(TWOFA_SMTP_USER, TWOFA_SMTP_PASS)
+        server.send_message(msg)
+
+@app.post("/auth/2fa/send", response_model=TwoFASendResponse)
+def send_two_fa_code():
+    """
+    데모용: 서버에서 6자리 코드 생성해서 이메일로 전송.
+    코드는 메모리에 5분 동안만 저장된다.
+    """
+    code = f"{secrets.randbelow(1000000):06d}"  # 000000 ~ 999999
+    expires_at = time.time() + 5 * 60  # 5분 유효
+
+    TWOFA_STORE["code"] = code
+    TWOFA_STORE["expires_at"] = expires_at
+
+    try:
+        send_twofa_email(code)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to send 2FA email: {exc}"
+        )
+
+    return TwoFASendResponse(
+        success=True,
+        message=f"2FA code sent to {TWOFA_EMAIL_TO}. It will expire in 5 minutes.",
+    )
+
+# -------------------------------------------------------------
+# 2FA Verification Endpoint
+# -------------------------------------------------------------
+
+@app.post("/auth/2fa/verify", response_model=TwoFAResponse)
+def verify_two_fa(req: TwoFARequest):
+
+    stored_code = TWOFA_STORE.get("code")
+    expires_at = TWOFA_STORE.get("expires_at", 0.0)
+
+    if not stored_code:
+        return TwoFAResponse(success=False, message="No 2FA code has been issued.")
+
+    if time.time() > expires_at:
+        return TwoFAResponse(success=False, message="The 2FA code has expired.")
+
+    if req.code == stored_code:
+        TWOFA_STORE["code"] = None
+        return TwoFAResponse(success=True, message="2FA verification successful.")
+    else:
+        return TwoFAResponse(success=False, message="Invalid 2FA code.")
