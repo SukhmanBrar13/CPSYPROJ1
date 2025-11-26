@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchSecurityStatus } from "../lib/api";
 import type { SecurityStatus, TwoFAResponse, TwoFASendResponse } from "../lib/api";
 import { triggerCloudCleanup } from "../lib/api";

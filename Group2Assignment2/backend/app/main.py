@@ -1,10 +1,10 @@
 # Defines all API routes for insights, recipes, and clustering.
 from http.client import HTTPException
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Query # type: ignore
+from fastapi.middleware.cors import CORSMiddleware # type: ignore
 from pathlib import Path
-import pandas as pd
-from sklearn.cluster import KMeans
+import pandas as pd # type: ignore
+from sklearn.cluster import KMeans # type: ignore
 from .data_loader import load_data
 from .utils import filter_by_diet, NUM_COLS
 from .models import (
@@ -13,11 +13,11 @@ from .models import (
     ClusterResponse, ClusterPoint
 )
 from .azure_cleanup import cleanup_resource_group
-from pydantic import BaseModel
+from pydantic import BaseModel # type: ignore
 from typing import Literal
 import os
-import requests
-from fastapi import HTTPException
+import requests # type: ignore
+from fastapi import HTTPException # type: ignore
 import time
 import secrets
 import smtplib
@@ -340,12 +340,8 @@ def send_twofa_email(code: str):
 
 @app.post("/auth/2fa/send", response_model=TwoFASendResponse)
 def send_two_fa_code():
-    """
-    데모용: 서버에서 6자리 코드 생성해서 이메일로 전송.
-    코드는 메모리에 5분 동안만 저장된다.
-    """
-    code = f"{secrets.randbelow(1000000):06d}"  # 000000 ~ 999999
-    expires_at = time.time() + 5 * 60  # 5분 유효
+    code = f"{secrets.randbelow(1000000):06d}"
+    expires_at = time.time() + 5 * 60
 
     TWOFA_STORE["code"] = code
     TWOFA_STORE["expires_at"] = expires_at
