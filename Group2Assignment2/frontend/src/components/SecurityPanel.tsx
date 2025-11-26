@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { fetchSecurityStatus } from "../lib/api";
+import type { SecurityStatus } from "../lib/api";
 import { triggerCloudCleanup } from "../lib/api";
 
 type Props = {
@@ -6,10 +8,33 @@ type Props = {
 };
 
 export default function SecurityPanel({ onCleanUpClick }: Props) {
+  // ----- Security & Compliance -----
+  const [security, setSecurity] = useState<SecurityStatus | null>(null);
+  const [secLoading, setSecLoading] = useState(false);
+  const [secError, setSecError] = useState<string | null>(null);
+
+  // ----- Cloud Cleanup -----
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
   const [cleanupError, setCleanupError] = useState<string | null>(null);
 
+  // Fetch security status on component mount
+  useEffect(() => {
+    (async () => {
+      try {
+        setSecLoading(true);
+        setSecError(null);
+        const status = await fetchSecurityStatus();
+        setSecurity(status);
+      } catch (e: any) {
+        setSecError(e?.message ?? "Failed to load security status");
+      } finally {
+        setSecLoading(false);
+      }
+    })();
+  }, []);
+
+  // Handle Cloud Cleanup button click
   async function handleCleanUpClick() {
     try {
       setCleanupLoading(true);
@@ -29,6 +54,7 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
         onCleanUpClick();
       }
     } catch (e: any) {
+      console.error("Cleanup error", e);
       setCleanupError(
         e?.message || "Failed to clean up cloud resources. Please try again."
       );
@@ -40,30 +66,49 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
   return (
     <div className="mt-8 space-y-6">
       {/* Security & Compliance */}
+      <h2 className="text-xl font-bold mb-4 pl-5">Security &amp; Compliance</h2>
       <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Security &amp; Compliance</h2>
-        <div className="space-y-1 text-sm">
-          <div>
-            <span className="font-medium">Security Status</span>
+
+        {secLoading && (
+          <p className="text-sm text-gray-500">Loading security status...</p>
+        )}
+
+        {secError && (
+          <p className="text-sm text-red-600">
+            Failed to load security status: {secError}
+          </p>
+        )}
+
+        {security && !secLoading && !secError && (
+          <div className="space-y-1 text-sm">
+            <div>
+              <span style={{ fontWeight: "600", fontSize: "18px" }}>Security Status</span>
+            </div>
+            <div>
+              Encryption:{" "}
+              <span className="text-green-600 font-medium">
+                {security.encryption}
+              </span>
+            </div>
+            <div>
+              Access Control:{" "}
+              <span className="text-green-600 font-medium">
+                {security.security_status}
+              </span>
+            </div>
+            <div>
+              Compliance:{" "}
+              <span className="text-green-600 font-medium">
+                {security.compliance}
+              </span>
+            </div>
           </div>
-          <div>
-            Encryption:{" "}
-            <span className="text-green-600 font-medium">Enabled</span>
-          </div>
-          <div>
-            Access Control:{" "}
-            <span className="text-green-600 font-medium">Secure</span>
-          </div>
-          <div>
-            Compliance:{" "}
-            <span className="text-green-600 font-medium">GDPR Compliant</span>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* OAuth & 2FA Integration */}
+      <h2 className="text-xl font-bold mb-4 pl-5">OAuth &amp; 2FA Integration</h2>
       <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">OAuth &amp; 2FA Integration</h2>
 
         <div className="space-y-3">
           <div className="text-sm font-medium mb-1">Secure Login</div>
@@ -91,8 +136,8 @@ export default function SecurityPanel({ onCleanUpClick }: Props) {
       </section>
 
       {/* Cloud Resource Cleanup */}
+      <h2 className="text-xl font-bold mb-4 pl-5">Cloud Resource Cleanup</h2>
       <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-3">Cloud Resource Cleanup</h2>
         <p className="text-sm text-gray-600 mb-4">
           Ensure that cloud resources are efficiently managed and cleaned up
           post-deployment.

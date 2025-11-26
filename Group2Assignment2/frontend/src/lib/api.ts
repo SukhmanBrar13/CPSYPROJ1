@@ -1,5 +1,13 @@
 const BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+export type SecurityStatus = {
+  security_status: string;
+  encryption: string;
+  access_control: string;
+  compliance: string;
+  issues: string[];
+};
+
 export async function fetchAvg(diet: string = "all") {
   const r = await fetch(`${BASE}/insights/avg?diet=${encodeURIComponent(diet)}`);
   if (!r.ok) throw new Error("Failed to fetch avg insights");
@@ -38,6 +46,17 @@ export async function triggerCloudCleanup() {
   if (!r.ok) {
     const msg = await r.text();
     throw new Error(msg || "Failed to clean up cloud resources");
+  }
+
+  return r.json();
+}
+
+export async function fetchSecurityStatus(): Promise<SecurityStatus> {
+  const r = await fetch(`${BASE}/security/status`);
+
+  if (!r.ok) {
+    const msg = await r.text();
+    throw new Error(msg || "Failed to fetch security status");
   }
 
   return r.json();

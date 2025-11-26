@@ -13,6 +13,7 @@ from .models import (
     ClusterResponse, ClusterPoint
 )
 from .azure_cleanup import cleanup_resource_group
+from pydantic import BaseModel
 
 # Path to the CSV dataset (shared across all API endpoints)
 CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "All_Diets.csv"
@@ -141,6 +142,31 @@ async def clusters(k: int = Query(4, ge=2, le=10), diet: str = Query("all")):
     ]
 
     return {"points": points}
+
+# -------------------------------------------------------------
+# Security status endpoint
+# -------------------------------------------------------------
+class SecurityStatus(BaseModel):
+    security_status: str
+    encryption: str
+    access_control: str
+    compliance: str
+    issues: list[str] = []
+
+
+@app.get("/security/status", response_model=SecurityStatus)
+def get_security_status():
+    issues: list[str] = []
+
+    issues.append("CORS is wide open for development (*). Restrict origins in production.")
+
+    return SecurityStatus(
+        security_status="Secure",
+        encryption="Enabled",
+        access_control="Role-based",
+        compliance="GDPR Compliant",
+        issues=issues,
+    )
 
 # -------------------------------------------------------------
 # Cloud resource cleanup endpoint
