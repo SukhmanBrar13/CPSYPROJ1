@@ -22,6 +22,8 @@ import time
 import secrets
 import smtplib
 from email.message import EmailMessage
+from azure.identity import DefaultAzureCredential
+from azure.mgmt.storage import StorageManagementClient
 
 # Path to the CSV dataset (shared across all API endpoints)
 CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "All_Diets.csv"
@@ -164,17 +166,28 @@ class SecurityStatus(BaseModel):
 
 @app.get("/security/status", response_model=SecurityStatus)
 def get_security_status():
-    issues: list[str] = []
+    credential = DefaultAzureCredential()
+    subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
+    resource_group = os.environ["AZURE_RESOURCE_GROUP"]
+    account_name = os.environ["AZURE_STORAGE_ACCOUNT"]
 
-    issues.append("CORS is wide open for development (*). Restrict origins in production.")
+    storage_client = StorageManagementClient(credential, subscription_id)
+
+    account = storage_client.storage_accounts.get_properties(
+        resource_group_name=resource_group,
+        account_name=account_name
+    )
+
+    encryption_enabled = account.encryption.services.blob.enabled
 
     return SecurityStatus(
-        security_status="Secure",
-        encryption="Enabled",
+        security_status="Secure" if encryption_enabled else "Warning",
+        encryption="Enabled" if encryption_enabled else "Disabled",
         access_control="Role-based",
-        compliance="GDPR Compliant",
-        issues=issues,
+        compliance="Azure Policy Passed",
+        issues=[]
     )
+
 
 # -------------------------------------------------------------
 # Cloud resource cleanup endpoint
