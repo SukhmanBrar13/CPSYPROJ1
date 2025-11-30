@@ -184,7 +184,7 @@ def get_security_status():
         security_status="Secure" if encryption_enabled else "Warning",
         encryption="Enabled" if encryption_enabled else "Disabled",
         access_control="Role-based",
-        compliance="Azure Policy Passed",
+        compliance = "Passed" if encryption_enabled else "Failed",
         issues=[]
     )
 
